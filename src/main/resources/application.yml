@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: websocketsse
+  sleuth:
+    reactor:
+      instrumentationType: DECORATE_ON_EACH
+  thymeleaf:
+    cache: false
+
+logging:
+  level:
+    root: INFO
+
+
+management:
+  server:
+    port: ${managementServerPort:8443}
+  endpoints:
+    web:
+      exposure:
+        include: prometheus, health
+  security:
+    enabled: false
+  health:
+    enabled: true
+  endpoint:
+    health:
+      show-details=always: true
+
+server:
+  port: 8443
+#  ssl:
+#    key-store: ${KEY_STORE}
+#    key-store-password: ${KEY_STORE_PWD}
+#    trust-store: ${JAVA_HOME}/lib/security/cacerts
+#    trust-store-password: changeit
+

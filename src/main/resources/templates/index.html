@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Server-Sent Events Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+        }
+
+        #heartbeat-container {
+            color: red;
+            font-weight: bold;
+            background-color: #FFEEEE;
+            height: 100px; /* Adjusted size */
+        }
+
+        #response-container, #messages {
+            color: green;
+            background-color: #EEFFEE;
+            height: 150px;
+        }
+
+        form {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+
+        #message-input, button {
+            font-size: 18px; /* Bigger size */
+            padding: 10px; /* More padding */
+        }
+
+        button {
+            background-color: #4CAF50; /* Green background */
+            color: white; /* White text */
+            border: none; /* No border */
+            cursor: pointer; /* Pointer cursor */
+        }
+
+        button:hover {
+            background-color: #45a049; /* Darker green */
+        }
+    </style>
+</head>
+<body>
+<h1>Server-Sent Events (SSE) Demo</h1>
+<p>Your session ID: <span id="sessionId" th:text="${sessionId}"></span></p>
+
+<div class="container" id="heartbeat-container">
+    <h2>Heartbeat:</h2>
+    <!-- Heartbeat messages will be displayed here -->
+</div>
+
+<form id="message-form">
+    <label for="message-input">Send a message:</label>
+    <input id="message-input" required type="text">
+    <button type="submit">Send</button>
+</form>
+
+<div class="container" id="response-container">
+    <h2>Client Requests:</h2>
+    <!-- Other messages from server will be displayed here -->
+</div>
+
+<div class="container" id="messages">
+    <h2>Server Responses:</h2>
+    <!-- Messages sent to the server will be displayed here -->
+</div>
+
+<script>
+    window.addEventListener("DOMContentLoaded", () => {
+        const sessionId = document.getElementById("sessionId").textContent.trim(); // Trim whitespace
+        const eventSource = new EventSource(`/api/v1/serversentevent/session/status/${sessionId}`);
+
+        eventSource.onmessage = function (event) {
+            try {
+                const data = JSON.parse(event.data);
+
+                if (data.type && data.type === "DISCONNECTED") {
+                    console.log("Disconnect message received. Reason: " + data.message);
+
+                    const disconnectMessage = "Server ended the session: " + data.message;
+                    const responseContainer = document.getElementById("response-container");
+                    const messageElement = document.createElement("p");
+                    messageElement.textContent = disconnectMessage;
+                    responseContainer.appendChild(messageElement);
+
+                    eventSource.close();
+                    alert("Session has ended: " + data.message);
+
+                } else if (data.type && data.type === "HEARTBEAT") {
+                    const heartbeatContainer = document.getElementById("heartbeat-container");
+                    heartbeatContainer.textContent = "Heartbeat received at: " + new Date().toLocaleTimeString();
+                } else {
+                    const responseContainer = document.getElementById("response-container");
+                    const messageElement = document.createElement("p");
+                    messageElement.textContent = `Message: ${data.message}`;
+                    responseContainer.appendChild(messageElement);
+                }
+            } catch (error) {
+                console.error("Error parsing SSE data:", error);
+            }
+        };
+
+        eventSource.onerror = function (error) {
+            console.error("SSE error:", error);
+            eventSource.close();
+        };
+
+        document.getElementById("message-form").addEventListener("submit", function (event) {
+            event.preventDefault();
+            const messageInput = document.getElementById("message-input");
+            const message = messageInput.value;
+            messageInput.value = ''; // Clear the input after sending the message
+
+            fetch(`/api/v1/serversentevent/session/progress/${sessionId}`, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({type: message, message: "signal for " + message})
+            })
+                .then(response => response.text())
+                .then(text => {
+                    const messagesContainer = document.getElementById("messages");
+                    const messageElement = document.createElement("p");
+                    messageElement.textContent = `Server response: ${text}`;
+                    messagesContainer.appendChild(messageElement);
+                })
+                .catch(error => console.error("Error sending message:", error));
+        });
+    });
+</script>
+</body>
+</html>
