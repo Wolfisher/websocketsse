@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Polling Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        #response-container {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-right: 10px;
+            width: 300px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<h1>Connection Status</h1>
+
+<label for="sessionIdInput">Enter Session ID:</label>
+<input id="sessionIdInput" type="text">
+<button onclick="submitSessionId()">Submit</button>
+
+<div id="response-container">
+    <p>Response will appear here.</p>
+</div>
+
+<script>
+    // Define the base endpoint URL
+    const baseEndpoint = '/api/v1/serversentevent/session/connection-status/';
+
+    async function submitSessionId() {
+        const sessionId = document.getElementById("sessionIdInput").value;
+        if (!sessionId) {
+            alert("Please enter a Session ID.");
+            return;
+        }
+
+        const fullUrl = baseEndpoint + encodeURIComponent(sessionId);
+
+        try {
+            const response = await fetch(fullUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            displayResponse(data);
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            displayResponse({error: "Failed to fetch data."});
+        }
+    }
+
+    function displayResponse(data) {
+        const responseContainer = document.getElementById('response-container');
+        const message = JSON.stringify(data, null, 2);
+        responseContainer.textContent = `Response: ${message}`;
+    }
+</script>
+</body>
+</html>
